@@ -1,0 +1,43 @@
+<!--APP/app/templates/partials/operator_table.html-->
+<link rel="strong" href="/static/css/operator_table.css">
+<div class="enhanced-table-container" role="region" style="max-height: 1000px; overflow-y: auto;">
+    <table {#class="enhanced-table table table-striped table-hover text-center align-middle"#}>
+        <thead class="table-success">
+            <tr>
+                {% for col in columns %}
+                    <th>{{ col }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for operator, records in groups.items() %}
+            {% for record in records %}
+                <tr class="{% if loop.first %}border-top border-5 border-dark{% endif %}">
+                    {% if loop.first %}
+                        <td class="border-bottom border-5" style="border-bottom-color: #000000 !important;" rowspan="{{ records|length }}">{{ record[0] }}</td> <!-- operator_en -->
+                        <td class="border-bottom border-5" style="border-bottom-color: #000000 !important;" rowspan="{{ records|length }}">{{ record[1] }}</td> <!-- Customer -->
+                        <td class="border-bottom border-5" style="border-bottom-color: #000000 !important;" rowspan="{{ records|length }}">{{ record[2] }}</td> <!-- Model -->
+                    {% endif %}
+                    <td class="{% if loop.last %}border-bottom border-5{% endif %}" style="{% if loop.last %}border-bottom-color: #000000 !important;{% endif %}">{{ record[3] }}</td> <!-- Station -->
+                    <td class="{% if loop.last %}border-bottom border-5{% endif %}" style="{% if loop.last %}border-bottom-color: #000000 !important;{% endif %}">{{ record[4] }}</td> <!-- Output -->
+                    <td class="{% if loop.last %}border-bottom border-5{% endif %}" style="{% if loop.last %}border-bottom-color: #000000 !important;{% endif %}">{{ record[5] }}</td> <!-- target_time -->
+                    <td class="{% if loop.last %}border-bottom border-5{% endif %}" style="{% if loop.last %}border-bottom-color: #000000 !important;{% endif %}">{{ record[6] }}</td> <!-- Start_time -->
+                    <td class="{% if loop.last %}border-bottom border-5{% endif %}" style="{% if loop.last %}border-bottom-color: #000000 !important;{% endif %}">{{ record[7] }}</td> <!-- End_time -->
+                    <td class="{% if loop.last %}border-bottom border-5{% endif %}" style="{% if loop.last %}border-bottom-color: #000000 !important;{% endif %}">{{ record[8] }}</td> <!-- %UTIL -->
+                    <td class="{% if loop.last %}border-bottom border-5{% endif %}" style="{% if loop.last %}border-bottom-color: #000000 !important;{% endif %}">{{ record[9] }}</td> <!-- Unnamed column -->
+                    {% if loop.first %}
+                        <td class="border-bottom border-5" style="border-bottom-color: #000000 !important;" rowspan="{{ records|length }}">{{ summaries.get(operator, {}).get("%UTIL", 0) }}</td> <!-- Total_Util -->
+                    {% endif %}
+                </tr>
+            {% endfor %}
+            {% endfor %}
+            
+            {% if summaries["__AVERAGE__"] is defined %}
+            <tr class="table-secondary fw-bold">
+                <td colspan="10" style="text-align:right;">Average Productivity Today</td>
+                <td>{{ summaries["__AVERAGE__"]["%UTIL"] }}</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>

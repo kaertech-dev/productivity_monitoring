@@ -1,0 +1,24 @@
+<!--APP/app/templates/testing.html-->
+{% extends "layouts/base.html" %}
+
+{% block title %}Productivity Monitoring{% endblock %}
+
+{% block content %}
+<style>
+    
+</style>
+<link rel="stylesheet" href="/static/css/testing.css">
+<div class="animated-border-container">
+    <img src="/static/kaertech_logo512.png" alt="Kaertech Logo">
+    <h1>Productivity Monitoring for ({{ current_date }})</h1>
+</div>
+
+{% if groups %}
+    {% include "partials/filter_download_form.html" %}
+    {% include "partials/operator_table.html" %}
+    <script src="/static/js/filter_download_form.js"></script>
+{% else %}
+    <p><strong>No records found for today.</strong></p>
+    <button onclick="history.back()">Go back</button>
+{% endif %}
+{% endblock %}
