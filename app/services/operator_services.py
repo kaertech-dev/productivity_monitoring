@@ -66,7 +66,7 @@ def fetch_operator_data(prod_start: str, prod_end: str, db_name: str = None):
                 for row in rows:
                     operator_en, output, start_time, end_time, duration_hours = row
 
-                    # fetch timestamps for utilization stats
+                    # fetch timestamps for utilization stats (keeping for potential future use)
                     cursor.execute(f"""
                         SELECT `{date_column}`
                         FROM `{db}`.`{table}`
@@ -97,6 +97,13 @@ def fetch_operator_data(prod_start: str, prod_end: str, db_name: str = None):
                     # fetch target time
                     target_time = fetch_target_time(cursor, model, station)
 
+                    # calculate cycle time as (end_time - start_time) / target_time
+                    if start_time and end_time and target_time and target_time > 0:
+                        time_diff_seconds = (end_time - start_time).total_seconds()
+                        cycle_time = round(time_diff_seconds / target_time, 2)
+                    else:
+                        cycle_time = 0
+
                     # hide SMT stations
                     if "smt" in station.upper():
                         station = "HIDDEN"
@@ -108,7 +115,7 @@ def fetch_operator_data(prod_start: str, prod_end: str, db_name: str = None):
                         'operator_en': operator_en,
                         'Output': output,
                         'Target_Time': target_time,
-                        'Cycle_Time': avg_3_shortest,
+                        'Cycle_Time': cycle_time,
                         'Start_Time': str(start_time),
                         'End_time': str(end_time),
                         '%UTIL': util_percent,
