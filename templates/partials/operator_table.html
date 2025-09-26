@@ -1,7 +1,7 @@
 <!--APP/app/templates/partials/operator_table.html-->
-<link rel="strong" href="/static/css/operator_table.css">
+<link rel="stylesheet" href="/static/css/operator_table.css">
 <div class="enhanced-table-container" role="region" style="max-height: 1000px; overflow-y: auto;">
-    <table {#class="enhanced-table table table-striped table-hover text-center align-middle"#}>
+    <table class="enhanced-table table table-striped table-hover text-center align-middle">
         <thead class="table-success">
             <tr>
                 {% for col in columns %}
@@ -12,27 +12,49 @@
         <tbody>
             {% for operator, records in groups.items() %}
             {% for record in records %}
+                {% set is_last_in_group = loop.last %}
+                {% set row_index = loop.index %}
                 <tr class="{% if loop.first %}border-top border-5 border-dark{% endif %}">
                     {% if loop.first %}
-                        <td class="border-bottom border-5" style="border-bottom-color: #000000 !important;" rowspan="{{ records|length }}">{{ record[0] }}</td> <!-- operator_en -->
-                        <td class="border-bottom border-5" style="border-bottom-color: #000000 !important;" rowspan="{{ records|length }}">{{ record[1] }}</td> <!-- Customer -->
-                        <td class="border-bottom border-5" style="border-bottom-color: #000000 !important;" rowspan="{{ records|length }}">{{ record[2] }}</td> <!-- Model -->
+                        <td class="border-bottom border-5" style="border-bottom-color: #000000 !important;" rowspan="{{ records|length }}">{{ record.operator_en }}</td>
                     {% endif %}
-                    <td class="{% if loop.last %}border-bottom border-5{% endif %}" style="{% if loop.last %}border-bottom-color: #000000 !important;{% endif %}">{{ record[3] }}</td> <!-- Station -->
-                    <td class="{% if loop.last %}border-bottom border-5{% endif %}" style="{% if loop.last %}border-bottom-color: #000000 !important;{% endif %}">{{ record[4] }}</td> <!-- Output -->
-                    <td class="{% if loop.last %}border-bottom border-5{% endif %}" style="{% if loop.last %}border-bottom-color: #000000 !important;{% endif %}">{{ record[5] }}</td> <!-- target_time -->
-                    <td class="{% if loop.last %}border-bottom border-5{% endif %}" style="{% if loop.last %}border-bottom-color: #000000 !important;{% endif %}">{{ record[6] }}</td> <!-- Start_time -->
-                    <td class="{% if loop.last %}border-bottom border-5{% endif %}" style="{% if loop.last %}border-bottom-color: #000000 !important;{% endif %}">{{ record[7] }}</td> <!-- End_time -->
-                    <td class="{% if loop.last %}border-bottom border-5{% endif %}" style="{% if loop.last %}border-bottom-color: #000000 !important;{% endif %}">{{ record[8] }}</td> <!-- %UTIL -->
-                    <td class="{% if loop.last %}border-bottom border-5{% endif %}" style="{% if loop.last %}border-bottom-color: #000000 !important;{% endif %}">{{ record[9] }}</td> <!-- Unnamed column -->
+                    
+                    <!-- Customer column with rowspan -->
+                    {% if record.Customer_rowspan > 0 %}
+                        {% set customer_spans_to_end = (row_index + record.Customer_rowspan - 1) == records|length %}
+                        <td rowspan="{{ record.Customer_rowspan }}" 
+                            class="{% if customer_spans_to_end %}border-bottom border-5{% endif %}"
+                            style="{% if customer_spans_to_end %}border-bottom-color: #000000 !important;{% endif %}">
+                            {{ record.Customer }}
+                        </td>
+                    {% endif %}
+
+                    <!-- Model column with rowspan -->
+                    {% if record.Model_rowspan > 0 %}
+                        {% set model_spans_to_end = (row_index + record.Model_rowspan - 1) == records|length %}
+                        <td rowspan="{{ record.Model_rowspan }}"
+                            class="{% if model_spans_to_end %}border-bottom border-5{% endif %}"
+                            style="{% if model_spans_to_end %}border-bottom-color: #000000 !important;{% endif %}">
+                            {{ record.Model }}
+                        </td>
+                    {% endif %}
+                    
+                    <td class="{% if is_last_in_group %}border-bottom border-5{% endif %}" style="{% if is_last_in_group %}border-bottom-color: #000000 !important;{% endif %}">{{ record.Station }}</td>
+                    <td class="{% if is_last_in_group %}border-bottom border-5{% endif %}" style="{% if is_last_in_group %}border-bottom-color: #000000 !important;{% endif %}">{{ record.Output }}</td>
+                    <td class="{% if is_last_in_group %}border-bottom border-5{% endif %}" style="{% if is_last_in_group %}border-bottom-color: #000000 !important;{% endif %}">{{ record.Target_Time }}</td>
+                    <td class="{% if is_last_in_group %}border-bottom border-5{% endif %}" style="{% if is_last_in_group %}border-bottom-color: #000000 !important;{% endif %}">{{ record.Cycle_Time }}</td>
+                    <td class="{% if is_last_in_group %}border-bottom border-5{% endif %}" style="{% if is_last_in_group %}border-bottom-color: #000000 !important;{% endif %}">{{ record.Start_Time }}</td>
+                    <td class="{% if is_last_in_group %}border-bottom border-5{% endif %}" style="{% if is_last_in_group %}border-bottom-color: #000000 !important;{% endif %}">{{ record.End_time }}</td>
+                    <td class="{% if is_last_in_group %}border-bottom border-5{% endif %}" style="{% if is_last_in_group %}border-bottom-color: #000000 !important;{% endif %}">{{ record['%UTIL'] }}</td>
+                    
                     {% if loop.first %}
-                        <td class="border-bottom border-5" style="border-bottom-color: #000000 !important;" rowspan="{{ records|length }}">{{ summaries.get(operator, {}).get("%UTIL", 0) }}</td> <!-- Total_Util -->
+                        <td class="border-bottom border-5" style="border-bottom-color: #000000 !important;" rowspan="{{ records|length }}">{{ summaries.get(operator, {}).get("%UTIL", 0) }}</td>
                     {% endif %}
                 </tr>
             {% endfor %}
             {% endfor %}
             
-            {% if summaries["__AVERAGE__"] is defined %}
+            {% if summaries.get("__AVERAGE__") %}
             <tr class="table-secondary fw-bold">
                 <td colspan="10" style="text-align:right;">Average Productivity Today</td>
                 <td>{{ summaries["__AVERAGE__"]["%UTIL"] }}</td>

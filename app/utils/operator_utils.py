@@ -1,4 +1,4 @@
-# app/utils/operator.py
+# app/utils/operator_utils.py
 from collections import defaultdict
 
 def sort_data(all_data, sort_by: str):
@@ -10,17 +10,18 @@ def sort_data(all_data, sort_by: str):
         all_data.sort(key=lambda x: x["Start_Time"])
     return all_data
 
-
 def group_and_summarize(all_data, columns):
     grouped = defaultdict(list)
     summaries = {}
     total_utils_all = []
 
     for d in all_data:
-        grouped[d['operator_en']].append(tuple(d[col] for col in columns))
+        # Keep the record as a dictionary instead of converting to tuple
+        grouped[d['operator_en']].append(d)
 
     for operator, rows in grouped.items():
-        total_Util = sum(float(r[columns.index("%UTIL")]) for r in rows)
+        # Access %UTIL from dictionary instead of tuple index
+        total_Util = sum(float(row.get("%UTIL", 0)) for row in rows)
         summaries[operator] = {
             "%UTIL": round(total_Util, 2)
         }
@@ -33,3 +34,22 @@ def group_and_summarize(all_data, columns):
         }
 
     return grouped, summaries
+
+def preprocess_for_merge(records, merge_key="Station"):
+    processed = []
+    current = None
+
+    for record in records:
+        key_value = record[merge_key]
+        if not current or key_value != current["value"]:
+            # start new group
+            current = {
+                "value": key_value,
+                "rows": [record]
+            }
+            processed.append(current)
+        else:
+            # add to current group
+            current["rows"].append(record)
+
+    return processed

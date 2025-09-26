@@ -13,7 +13,6 @@ import csv
 
 router = APIRouter()
 
-
 def get_prod_range(
     day: Optional[str] = None,
     week: Optional[str] = None,
@@ -59,7 +58,6 @@ def get_prod_range(
 
             start = start.replace(hour=7, minute=0, second=0)
             end = (end + timedelta(days=1)).replace(hour=6, minute=59, second=59)
-        #start, end = start_date, end_date
         except Exception:
             start = end = today
 
@@ -71,7 +69,6 @@ def get_prod_range(
     prod_end = f"{(datetime.strptime(end, '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d')} 06:59:59"
 
     return start, end, prod_start, prod_end
-
 
 @router.get("/", response_class=HTMLResponse)
 async def show_operator_en_today(
@@ -86,12 +83,24 @@ async def show_operator_en_today(
 ):
     start, end, prod_start, prod_end = get_prod_range(day, week, month, start_date, end_date)
 
+    # Get raw data without rowspan calculations first
     all_data, databases = fetch_operator_data(prod_start, prod_end, db_name)
     columns = ['operator_en', 'Customer', 'Model', 'Station', 'Output',
                'Target_Time', 'Cycle_Time', 'Start_Time', 'End_time', '%UTIL', 'Total_Util']
 
+    # Sort the data first
     all_data = sort_data(all_data, sort_by)
+    
+    # Group by operator and calculate rowspans within each group
     grouped, summaries = group_and_summarize(all_data, columns)
+    
+    # Calculate rowspans for each operator group separately
+    for operator, records in grouped.items():
+        # Calculate Customer rowspans within this operator group
+        records = add_rowspan_to_group(records, "Customer")
+        # Calculate Model rowspans within this operator group  
+        records = add_rowspan_to_group(records, "Model")
+        grouped[operator] = records
 
     return templates.TemplateResponse("testing.html", {
         "request": request,
@@ -103,6 +112,24 @@ async def show_operator_en_today(
         "databases": databases,
         "selected_db": db_name
     })
+
+def add_rowspan_to_group(records, col_name):
+    """Add rowspan counts for consecutive identical values within a group."""
+    n = len(records)
+    i = 0
+    while i < n:
+        val = records[i][col_name]
+        count = 1
+        # count consecutive duplicates
+        j = i + 1
+        while j < n and records[j][col_name] == val:
+            count += 1
+            j += 1
+        # assign rowspan
+        for k in range(i, j):
+            records[k][f"{col_name}_rowspan"] = count if k == i else 0
+        i = j
+    return records
 
 @router.get("/download-csv")
 def download_csv(
@@ -118,28 +145,21 @@ def download_csv(
     all_data, _ = fetch_operator_data(prod_start, prod_end, db_name)
     columns = ['operator_en', 'Customer', 'Model', 'Station', 'Output',
                'Target_Time', 'Start_Time', 'End_time', '%UTIL']
-    #download csv button based on selected date range
+    
     filename = f"operator_data_{start}_to_{end}.csv"
 
-     # Create CSV in-memory
+    # Create CSV in-memory
     buffer = io.StringIO()
     writer = csv.writer(buffer)
     writer.writerow(columns)
     for row in all_data:
-        writer.writerow(row)
+        writer.writerow([row.get(col, '') for col in columns])
     buffer.seek(0)
 
     # Return as downloadable response
-    response = StreamingResponse(buffer, media_type="text/csv")
+    response = StreamingResponse(io.StringIO(buffer.getvalue()), media_type="text/csv")
     response.headers["Content-Disposition"] = f"attachment; filename={filename}"
     return response
-    # Format CSV filename with production timestamps
-    #filename_start = prod_start.replace(":", "-").replace(" ", "_")
-    #filename_end = prod_end.replace(":", "-").replace(" ", "_")
-    #filename = f"operator_data_{filename_start}_to_{filename_end}.csv"
-
-    #return generate_csv(all_data, filename=filename, columns=columns)
-
 
 @router.get("/api/operator_today", response_class=JSONResponse)
 async def api_operator_today():

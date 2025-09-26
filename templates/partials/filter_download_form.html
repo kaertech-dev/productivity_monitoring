@@ -1,4 +1,8 @@
 <!--APP/app/templates/partials/filter_download_form.html-->
+<div id="spinner-overlay" class="spinner-overlay">
+    <div class="spinner"></div>
+</div>
+<link rel="stylesheet" href="/static/css/filter_download_form.css">
 <div class="filter-download-wrapper">
     <div class="filter-dropdown">
         <!-- Dropdown to select filter type -->
@@ -19,7 +23,7 @@
 
 <!-- Forms (hidden with animation) -->
 <div class="form-container" id="dayform">
-  <form method="get" action="/">
+  <form method="get" action="/" onsubmit="showSpinner()">
     <label for="day_date">Choose Date:</label>
     <input type="date" id="day_date" name="day" required>
     <button type="submit">Submit</button>
@@ -27,7 +31,7 @@
 </div>
 
 <div class="form-container" id="weekform">
-  <form method="get" action="/">
+  <form method="get" action="/" onsubmit="showSpinner()">
     <label for="week_date">Choose Week:</label>
     <input type="week" id="week_date" name="week" required>
     <button type="submit">Submit</button>
@@ -35,7 +39,7 @@
 </div>
 
 <div class="form-container" id="monthform">
-  <form method="get" action="/">
+  <form method="get" action="/" onsubmit="showSpinner()">
     <label for="month_date">Choose Month:</label>
     <input type="month" id="month_date" name="month" required>
     <button type="submit">Submit</button>
@@ -43,7 +47,7 @@
 </div>
 
 <div class="form-container" id="rangeform">
-  <form method="get" action="/">
+  <form method="get" action="/" onsubmit="showSpinner()">
     <label for="start_date">Start Date:</label>
     <input type="date" id="start_date" name="start_date" required>
     <label for="end_date">End Date:</label>
@@ -51,121 +55,7 @@
     <button type="submit">Submit</button>
   </form>
 </div>
-<style>
-/* Wrapper: flex layout */
-.filter-download-wrapper {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-    gap: 15px;
-}
 
-/* Dropdown styling */
-.filter-dropdown label {
-    font-weight: 600;
-    margin-right: 8px;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-.filter-dropdown select {
-    padding: 8px 12px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-    font-size: 14px;
-    transition: all 0.3s ease;
-    outline: none;
-}
-
-.filter-dropdown select:hover {
-    border-color: #007BFF;
-    box-shadow: 0 0 5px rgba(0,123,255,0.3);
-}
-
-.filter-dropdown select:focus {
-    border-color: #007BFF;
-    box-shadow: 0 0 8px rgba(0,123,255,0.4);
-}
-
-/* Download button styling */
-.download-button-container button {
-    padding: 10px 20px;
-    font-size: 14px;
-    font-weight: 600;
-    color: #fff;
-    background: #007BFF;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.download-button-container button:hover {
-    background: #0056b3;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-}
-
-/* Animation container for forms */
-.form-container {
-    max-height: 0;
-    overflow: hidden;
-    opacity: 0;
-    transition: all 0.4s ease;
-    margin-top: 5px;
-}
-
-/* Show form when active */
-.form-container.active {
-    max-height: 250px; /* adjust based on form height */
-    opacity: 1;
-}
-/* Form inputs styling */
-.form-container input[type="date"],
-.form-container input[type="week"],
-.form-container input[type="month"] {
-    padding: 8px 12px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    font-size: 14px;
-    margin-right: 8px;
-    transition: all 0.3s ease;
-    outline: none;
-}
-
-.form-container input[type="date"]:hover,
-.form-container input[type="week"]:hover,
-.form-container input[type="month"]:hover {
-    border-color: #28a745;
-    box-shadow: 0 0 5px rgba(40, 167, 69, 0.3);
-}
-
-.form-container input[type="date"]:focus,
-.form-container input[type="week"]:focus,
-.form-container input[type="month"]:focus {
-    border-color: #28a745;
-    box-shadow: 0 0 8px rgba(40, 167, 69, 0.4);
-}
-
-/* Submit button styling */
-.form-container button[type="submit"] {
-    padding: 8px 16px;
-    font-size: 14px;
-    font-weight: 600;
-    color: #fff;
-    background-color: #28a745;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.form-container button[type="submit"]:hover {
-    background-color: #218838;
-    transform: translateY(-1px);
-    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
-}
-</style>
 <script>
 function showForm() {
     const value = document.getElementById("filterType").value;
@@ -179,6 +69,10 @@ function showForm() {
             el.classList.remove("active"); // hide smoothly
         }
     });
+}
+
+function showSpinner() {
+    document.getElementById('spinner-overlay').style.display = 'flex';
 }
 
 function downloadCSV() {

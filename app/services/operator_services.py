@@ -4,6 +4,7 @@ from .db_utils import get_databases, get_tables, get_columns, find_date_column
 from .stats_utils import calculate_durations, average_of_shortest, mode_duration
 from .target_time_service import fetch_target_time
 from ..config import hidden_database
+from collections import defaultdict
 
 
 def fetch_operator_data(prod_start: str, prod_end: str, db_name: str = None):
@@ -120,4 +121,7 @@ def fetch_operator_data(prod_start: str, prod_end: str, db_name: str = None):
 
     cursor.close()
     conn.close()
+    
+    # Return raw data without rowspan calculations
+    # Rowspan will be calculated after grouping in the route handler
     return all_data, databases

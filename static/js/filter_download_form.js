@@ -1,5 +1,24 @@
 //app/static/js/file_download_form.js
-document.addEventListener('DOMContentLoaded', function() {
+function showForm() {
+    const value = document.getElementById("filterType").value;
+    const forms = ["dayform", "weekform", "monthform", "rangeform"];
+
+    forms.forEach(id => {
+        let el = document.getElementById(id);
+        if (value + "form" === id) {
+            el.classList.add("active");  // show with animation
+        } else {
+            el.classList.remove("active"); // hide smoothly
+        }
+    });
+}
+
+function downloadCSV() {
+    const params = new URLSearchParams(window.location.search);
+    let url = '/download-csv?' + params.toString();
+    window.location.href = url;
+}
+/*document.addEventListener('DOMContentLoaded', function() {
     // Handle dropdown form selection
     document.querySelectorAll('.dropdown-item').forEach(function(item) {
         item.addEventListener('click', function(e) {
@@ -38,4 +57,4 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('spinner').style.display = 'inline-block';
         });
     });
-});
+});*/
