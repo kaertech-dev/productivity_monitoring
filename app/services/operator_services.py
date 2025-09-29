@@ -7,11 +7,12 @@ from ..config import hidden_database
 from collections import defaultdict
 
 
-def fetch_operator_data(prod_start: str, prod_end: str, db_name: str = None):
+def fetch_operator_data(prod_start: str, prod_end: str, db_name: str = None, filter_type: str = "day"):
     """
     Fetch operator production data across databases within the given production
     time window. Assumes prod_start and prod_end are already properly formatted
     datetime strings ("YYYY-MM-DD HH:MM:SS").
+    filter_type: "day", "week", "month", or "range" to determine cycle time calculation
     """
 
     conn = get_connection()
@@ -66,7 +67,7 @@ def fetch_operator_data(prod_start: str, prod_end: str, db_name: str = None):
                 for row in rows:
                     operator_en, output, start_time, end_time, duration_hours = row
 
-                    # fetch timestamps for utilization stats (keeping for potential future use)
+                    #--------------------- fetch timestamps for utilization stats (keeping for potential future use)--------------------------
                     cursor.execute(f"""
                         SELECT `{date_column}`
                         FROM `{db}`.`{table}`
@@ -81,30 +82,60 @@ def fetch_operator_data(prod_start: str, prod_end: str, db_name: str = None):
                     avg_3_shortest = average_of_shortest(durations, n=3)
                     mode_value = mode_duration(durations)
 
-                    # split model and station
+                    #--------------------- split model and station--------------------------
                     if "_" in table:
                         model, station = table.split("_", 1)
                     else:
                         model, station = table, ""
 
-                    # utilization % (old formula)
-                    if start_time and end_time:
-                        diff_minutes = (end_time - start_time).total_seconds() / 60
-                        util_percent = round(diff_minutes / 10.5, 2)
-                    else:
-                        util_percent = 0
+                    #--------------------- utilization % (old formula)--------------------------
+                    if filter_type == "day":
+                        if start_time and end_time:
+                            diff_minutes = (end_time - start_time).total_seconds() / 60
+                            util_percent = round(diff_minutes / 10.5, 2)
+                        else:
+                            util_percent = 0
+                    elif filter_type == "week":
+                        if start_time and end_time:
+                            diff_minutes = (end_time - start_time).total_seconds() / 60
+                            util_percent = round((diff_minutes / (10.5*7)/7), 2)
+                        else:
+                            util_percent = 0
+                    elif filter_type == "month":
+                        if start_time and end_time:
+                            diff_minutes = (end_time - start_time).total_seconds() / 60
+                            util_percent = round((diff_minutes / (10.5*(end_time.date() - start_time.date()).days + 1)/30), 2)
+                        else:
+                            util_percent = 0
+                    else:  # range
+                        if start_time and end_time:
+                            diff_minutes = (end_time - start_time).total_seconds() / 60
+                            total_days = (end_time.date() - start_time.date()).days + 1
+                            util_percent = round(diff_minutes / (10.5 * total_days), 2)
+                        else:
+                            util_percent = 0
 
-                    # fetch target time
+                    #--------------------- fetch target time--------------------------
                     target_time = fetch_target_time(cursor, model, station)
 
-                    # calculate cycle time as (end_time - start_time) / target_time
-                    if start_time and end_time and target_time and target_time > 0:
-                        time_diff_seconds = (end_time - start_time).total_seconds()
-                        cycle_time = round(time_diff_seconds / target_time, 2)
+                    #--------------------- calculate cycle time--------------------------
+                    if filter_type == "day":
+                        # For single day: use actual working time / output
+                        if start_time and end_time:
+                            time_diff_seconds = (end_time - start_time).total_seconds()
+                            cycle_time = round(time_diff_seconds / output, 2) if output > 0 else 0
+                        else:
+                            cycle_time = 0
                     else:
-                        cycle_time = 0
+                        # For week/month/range: use total durations / output
+                        actual_working_seconds = sum(durations) if durations else 0
+                        if actual_working_seconds > 0 and output > 0:
+                            cycle_time = round(actual_working_seconds / output, 2)
+                        else:
+                            cycle_time = 0
 
-                    # hide SMT stations
+
+                    #--------------------- hide SMT stations--------------------------
                     if "smt" in station.upper():
                         station = "HIDDEN"
 
