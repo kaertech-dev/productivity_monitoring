@@ -18,7 +18,7 @@
     {% include "partials/operator_table.html" %}
     <script src="/static/js/filter_download_form.js"></script>
 {% else %}
-    <p><strong>No records found for today.</strong></p>
+    <p><strong>No records found for ({{ current_date }}).</strong></p>
     <button onclick="history.back()">Go back</button>
 {% endif %}
 {% endblock %}
