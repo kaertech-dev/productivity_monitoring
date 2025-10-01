@@ -75,27 +75,27 @@ def process_table(db, table, prod_start, prod_end, filter_type):
             #--------------------- utilization % (old formula)--------------------------
             if filter_type == "day":
                 if start_time and end_time:
-                    diff_minutes = (end_time - start_time).total_seconds() / 60
-                    util_percent = round(diff_minutes / 10.5, 2)
+                    diff_minutes = (end_time - start_time).total_seconds() / 3600.0
+                    util_percent = round((diff_minutes / 12.0) * 100, 2) 
                 else:
                     util_percent = 0
             elif filter_type == "week":
                 if start_time and end_time:
-                    diff_minutes = (end_time - start_time).total_seconds() / 60
-                    util_percent = round((diff_minutes / (10.5*7)/7), 2)
+                    diff_minutes = (end_time - start_time).total_seconds() / 3600.0
+                    util_percent = round(((diff_minutes / (12.0 * 7.0) / 7.0)) * 100, 2)
                 else:
                     util_percent = 0
             elif filter_type == "month":
                 if start_time and end_time:
-                    diff_minutes = (end_time - start_time).total_seconds() / 60
-                    util_percent = round((diff_minutes / (10.5*(end_time.date() - start_time.date()).days + 1)/30), 2)
+                    diff_minutes = (end_time - start_time).total_seconds() / 3600.0
+                    util_percent = round(((diff_minutes / (12.0 * (end_time.date() - start_time.date()).days + 1) / 30)) * 100, 2)
                 else:
                     util_percent = 0
             else:  # range
                 if start_time and end_time:
-                    diff_minutes = (end_time - start_time).total_seconds() / 60
+                    diff_minutes = (end_time - start_time).total_seconds() / 3600.0
                     total_days = (end_time.date() - start_time.date()).days + 1
-                    util_percent = round(diff_minutes / (10.5 * total_days), 2)
+                    util_percent = round((diff_minutes / (12.0 * total_days)) * 100, 2)
                 else:
                     util_percent = 0
 
