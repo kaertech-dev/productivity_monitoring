@@ -2,20 +2,46 @@ version: "3.9"
 
 services:
   monitoring:
-    build: .
-    image: main
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: myapp/monitoring:latest  # Valid image name with repository and tag
     container_name: productivity
     expose:
-      - "5001"   # expose internal port for Nginx to reach
+      - "5001"  # Internal port for Nginx
+    environment:
+      - UVICORN_HOST=0.0.0.0
+      - UVICORN_PORT=5001
+    # Remove 'command' if Dockerfile CMD is identical
+    # command: uvicorn main:app --host ${UVICORN_HOST} --port ${UVICORN_PORT}
     restart: always
-    command: uvicorn main:app --host 0.0.0.0 --port 5001
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]  # Adjust to your app's health endpoint
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - app-network
 
   nginx:
     image: nginx:latest
     container_name: nginx_proxy
     ports:
-      - "80:80"   # external port for users
+      - "80:80"  # External port for users
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - monitoring
+      monitoring:
+        condition: service_healthy  # Wait for monitoring to be healthy
+    networks:
+      - app-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  app-network:
+    driver: bridge
