@@ -48,8 +48,8 @@ async def show_operator_en_today(
     filter_type = determine_filter_type(day, week, month, start_date, end_date)
 
     all_data, databases = fetch_operator_data(prod_start, prod_end, db_name, filter_type)
-    columns = ['operator_en', 'Customer', 'Model', 'Station', 'Output',
-               'Target_Time', 'Cycle_Time', 'Start_Time', 'End_time', '%UTIL', 'Total_Util']
+    columns = ['Operator', 'Customer', 'Model', 'Station', 'Output Qty',
+               'Target Time(s)', 'Cycle Time(s)', 'Start Time', 'End Time', 'Util(%)', 'Total Util(%)']
 
     all_data = sort_data(all_data, sort_by)
     grouped, summaries = group_and_summarize(all_data, columns)
@@ -90,8 +90,8 @@ def download_csv(
     filter_type = determine_filter_type(day, week, month, start_date, end_date)
     
     all_data, _ = fetch_operator_data(prod_start, prod_end, db_name, filter_type)
-    columns = ['operator_en', 'Customer', 'Model', 'Station', 'Output',
-               'Target_Time', 'Cycle_Time', 'Start_Time', 'End_time', '%UTIL']
+    columns = ['Operator Name', 'Customer', 'Model', 'Station', 'Output Quantity',
+               'Target Time (s)', 'Cycle Time (s)', 'Start Time', 'End Time', 'Utilization (%)']
 
     filename = f"operator_data_{start}_to_{end}.csv"
     return generate_csv_response(all_data, columns, filename)
