@@ -1,18 +1,35 @@
-<!-- Dropdown to choose time period -->
-<div>
-    <div class="d-flex align-items-center gap-2 mb-2 justify-content-end position-relative" style="height: auto">
-    <div class="dropdown">
-        <button class="btn btn-secondary dropdown-toggle" type="button" id="arrowDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-        </button>
-        <!--dropdown forms-->
-        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="arrowDropdown">
-            <li><a class="dropdown-item" href="#" data-target="#dayform">Day</a></li>
-            <li><a class="dropdown-item" href="#" data-target="#weekform">Week</a></li>
-            <li><a class="dropdown-item" href="#" data-target="#monthform">Month</a></li>
-            <li><a class="dropdown-item" href="#" data-target="#rangeform">Range</a></li>
-        </ul>
+<!-- Filter and Download Section -->
+<div class="mb-3">
+    <div class="d-flex justify-content-between align-items-center">
+        <!-- Filter on left -->
+        <div class="d-flex align-items-center gap-2">
+            <label for="arrowDropdown" class="fw-bold">Choose Filter:</label>
+            <div class="dropdown">
+                <button class="btn btn-secondary dropdown-toggle" type="button" id="arrowDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                </button>
+            <!--dropdown forms-->
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="arrowDropdown">
+                <li><a class="dropdown-item" href="#" data-target="#dayform">Day</a></li>
+                <li><a class="dropdown-item" href="#" data-target="#weekform">Week</a></li>
+                <li><a class="dropdown-item" href="#" data-target="#monthform">Month</a></li>
+                <li><a class="dropdown-item" href="#" data-target="#rangeform">Range</a></li>
+            </ul>
+            </div>
+            <div id="spinner" class="spinner-border text-primary" role="status" style="display: none;">
+                <span class="visually-hidden">loading...</span>
+            </div>
+        </div>
+        
+        <!-- Download Button on right -->
+        <div>
+            <a href="/download-csv" class="btn btn-success">
+                ⬇️ Download CSV
+            </a>
+        </div>
     </div>
-    <div id="form-container" style="position: absolute; width: max-content; display: none; background: none; margin-top: 0.5rem; top: 45px; right: 160px;">
+    
+    <!-- Form container that pushes content down -->
+    <div id="form-container" style="display: none; margin-top: 1rem;">
         <!--week form-->
         <form id="weekform" style="display: none;">
             <label for="week">Select week:</label>
@@ -45,47 +62,7 @@
             <button type="submit" class="action-btn filter-btn" style="border-style: solid; border-width: 1px; border-color: #ccc;">Filter</button>
         </form>
     </div>
-    <div id="spinner" class="spinner-border text-primary" role="status" style="display: none;">
-        <span class="visually-hidden">loading...</span>
-    </div>
 </div>
-
-<form id="filter-form" method="get">
-    <div class="d-flex justify-content-between align-items-center mb-3" style="flex-wrap: wrap; gap: 1rem;">
-        <!-- Dropdowns -->
-        <div class="d-flex gap-2 flex-wrap">
-        <!-- Customer -->
-        <label for="customer">Customer:</label>
-        <select id="customer" name="customer">
-            <option value="" selected>All Customers</option>
-            {% for val in databases %}
-            <option value="{{ val }}" {% if selected_db == val %}selected{% endif %}>{{ val }}</option>
-            {% endfor %}
-        </select>
-
-        <!-- Model -->
-        <label for="model">Model:</label>
-        <select id="model" name="model">
-            <option value="" selected>All Models</option>
-        </select>
-
-        <!-- Station -->
-        <label for="station">Station:</label>
-        <select id="station" name="station">
-            <option value="" selected>All Stations</option>
-        </select>
-
-        <button type="submit" id="filterSubmit" class="btn btn-primary">Submit</button>
-        </div>
-
-        <!-- Download Button -->
-        <div>
-        <a href="/download-csv" class="btn btn-success">
-            ⬇️ Download CSV
-        </a>
-        </div>
-    </div>
-</form>
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
