@@ -3,9 +3,9 @@ version: "3.9"
 services:
   monitoring:
     build: .
-    image: main
-    container_name: productivity
-    expose:
-      - "5001"   # expose internal port for Nginx to reach
+    image: productivity
+    container_name: productivity_monitoring
+    ports:
+      - "5001:5001"   # expose internal port for Nginx to reach
     restart: always
     command: uvicorn main:app --host 0.0.0.0 --port 5001
