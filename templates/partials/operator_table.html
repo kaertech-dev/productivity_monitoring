@@ -56,7 +56,7 @@
             
             {% if summaries.get("__AVERAGE__") %}
             <tr class="table-secondary fw-bold">
-                <td colspan="10" style="text-align:right;">Average Productivity Today</td>
+                <td colspan="10" style="text-align:right;">Average Productivity for ({{ current_date }})</td>
                 <td>{{ summaries["__AVERAGE__"]["%UTIL"] }}</td>
             </tr>
             {% endif %}

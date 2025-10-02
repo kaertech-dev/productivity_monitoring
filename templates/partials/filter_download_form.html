@@ -23,7 +23,7 @@
 
 <!-- Forms (hidden with animation) -->
 <div class="form-container" id="dayform">
-  <form method="get" action="/" onsubmit="showSpinner()">
+  <form method="get" action="/" onsubmit="return handleDaySubmit(event)">
     <label for="day_date">Choose Date:</label>
     <input type="date" id="day_date" name="day" required>
     <button type="submit">Submit</button>
@@ -73,6 +73,27 @@ function showForm() {
 
 function showSpinner() {
     document.getElementById('spinner-overlay').style.display = 'flex';
+}
+
+function handleDaySubmit(event) {
+    showSpinner();
+    
+    // Get selected date
+    const selectedDate = document.getElementById('day_date').value;
+    
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    
+    // If selected date is today, redirect to root without query params
+    if (selectedDate === todayStr) {
+        event.preventDefault();
+        window.location.href = '/';
+        return false;
+    }
+    
+    // Otherwise, continue with normal form submission
+    return true;
 }
 
 function downloadCSV() {
