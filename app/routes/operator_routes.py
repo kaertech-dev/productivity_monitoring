@@ -1,4 +1,3 @@
-# app/app/routes/operator_routes.py
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -26,6 +25,14 @@ def determine_filter_type(day, week, month, start_date, end_date):
     else:
         return "day"  # default
 
+def format_date_with_month_name(date_str):
+    """Convert date string to format with month name (e.g., '2025-10-02' -> 'October 02, 2025')"""
+    try:
+        date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+        return date_obj.strftime('%b %d, %Y')
+    except:
+        return date_str
+
 @router.get("/", response_class=HTMLResponse)
 async def show_operator_en_today(
     request: Request,
@@ -52,12 +59,17 @@ async def show_operator_en_today(
         records = add_rowspan_to_group(records, "Model")
         grouped[operator] = records
 
+    # Format dates with month names
+    formatted_start = format_date_with_month_name(start)
+    formatted_end = format_date_with_month_name(end)
+    current_date_display = f"{formatted_start} → {formatted_end}" if start != end else formatted_start
+
     return templates.TemplateResponse("testing.html", {
         "request": request,
         "groups": grouped,
         "columns": columns,
         "summaries": summaries,
-        "current_date": f"{start} → {end}" if start != end else start,
+        "current_date": current_date_display,
         "sort_by": sort_by,
         "databases": databases,
         "selected_db": db_name,
