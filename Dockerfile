@@ -11,7 +11,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy app files
 COPY . .
 
-# Expose port
+# Create non-root user
+RUN adduser --disabled-password --gecos '' appuser && \
+    chown -R appuser:appuser /app
+USER appuser
+
+# Expose the port the app runs on
 EXPOSE 5001
 
 # Run the FastAPI app with Uvicorn
