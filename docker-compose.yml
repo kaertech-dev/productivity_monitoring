@@ -9,3 +9,9 @@ services:
       - "5001:5001"   # expose internal port for Nginx to reach
     restart: always
     command: uvicorn main:app --host 0.0.0.0 --port 5001
+    networks:
+      - manufacturing_network
+
+networks:
+  manufacturing_network:
+    external: true

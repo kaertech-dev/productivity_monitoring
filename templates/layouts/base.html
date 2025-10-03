@@ -6,11 +6,119 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="refresh" content="300">
     <link rel="icon" type="image/png" href="/static/kaertech_logo512.png">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="strong">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/testing.css">
     <title>{% block title %}Productivity Monitoring{% endblock %}</title>
+    <style>
+        body {
+            font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+            margin: 20px;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        .animated-border-container {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px solid #007bff;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            box-shadow: 0 2px 4px rgba(0, 123, 255, 0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            font-family: Arial;
+            font-size: clamp(20px, 3vw, 32px);
+            font-weight: bold;
+            margin: 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 25px auto;
+            min-width: 800px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1) !important;
+            background-color: #fff;
+        }
+        td:hover, th:hover{
+            transform: scale(1.2);
+            background-color: #8efd8e !important;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            z-index: 1;
+            position: relative;
+        } 
+        th, td {
+            padding: 12px 15px;
+            text-align: center;
+            border-bottom: 1px solid #ffffff;
+            font-size: clamp(20px, 2vw, 20px);
+            font-family: 'Arial';
+            font: bold;
+            font-weight: bolder;
+            transition: transform 0.3s ease, background-color 0.3s ease;
+        }
+        tr:nth-child(even) {
+            background-color: hsla(120, 84%, 75%, 0.068) !important;
+        }
+        tr:nth-child(odd) {
+            background-color: #ffffff;
+        }
+        .table th {
+            background-color: #27c033 !important;
+            color: white !important;
+            font-weight: bold;
+        }
+        .table td {
+            background-color: #ffffff !important;
+            font-weight: bold;
+            color: #333;
+        }
+        .table tr:nth-child(even) td {
+            background-color: hsla(120, 51%, 75%, 0.3) !important;
+        }
+        .table-hover tbody tr:hover td,
+        .table-hover tbody tr:hover th {
+            background-color: #f1f1f1 !important;
+        }
+        th {
+            background-color: #27c033;
+            color: #fff;
+            font-size: 20px;
+            letter-spacing: 1px;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        #customer, #model, #station {
+            min-width: 180px;
+            max-width: 250px;
+            padding: 6px 10px;
+            font-size: 16px;
+            border: 2px solid #27c033;
+            border-radius: 6px;
+            background-color: #fff;
+            cursor: pointer;
+        }
+        .table-hover tbody tr:hover td,
+        .table-hover tbody tr:hover th {
+            background-color: #f1f1f1 !important;
+        }
+        .square {
+            height: 35px;
+            width: 50px;
+            display: inline-block;
+        }
+        .green {
+            background-color: green;
+            border-radius: 10px;
+        }
+        .red {
+            background-color: red;
+            border-radius: 10px;
+        }
+    </style>
 </head>
-<body>
+<body class="p-2">
     <div class="logo-wrapper"></div>
     {% block content %}{% endblock %}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
