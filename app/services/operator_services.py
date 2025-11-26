@@ -6,10 +6,17 @@ from .target_time_service import fetch_target_time
 from ..config import hidden_database
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import timedelta
+import logging
+
+logger = logging.getLogger(__name__)
+
+# UTC offset constant: 7 hours and 15 minutes (matching activity monitoring)
+UTC_OFFSET_HOURS = 0  # Adjust this to match your timezone if needed
 
 def escape_identifier(identifier):
     """ Safely escape SQL identifiers (database/table/column names) 
-    prevent SQL injectoion by removing backticks and validating format.
+    prevent SQL injection by removing backticks and validating format.
     """
     if not identifier:
         raise ValueError("Identifier cannot be empty")
@@ -21,7 +28,7 @@ def escape_identifier(identifier):
 
 def process_table(db, table, prod_start, prod_end, filter_type):
     """
-    Process a single table for operator data.
+    Process a single table for operator data with break_logs-aware cycle time.
     Returns list of operator data dictionaries or empty list on error.
     """
     conn = get_connection()
@@ -43,6 +50,12 @@ def process_table(db, table, prod_start, prod_end, filter_type):
         if not date_column:
             return results
 
+        # Split model and station from table name
+        if "_" in table:
+            model, station = table.split("_", 1)
+        else:
+            model, station = table, ""
+
         # main production query
         query = f"""
             SELECT 
@@ -59,50 +72,161 @@ def process_table(db, table, prod_start, prod_end, filter_type):
         cursor.execute(query, (prod_start, prod_end))
         rows = cursor.fetchall()
 
+        # Batch fetch break_logs for all operators in this table
+        if rows:
+            operator_list = [row[0] for row in rows]
+            
+            # Adjust date range for break_logs UTC query
+            from datetime import datetime
+            start_dt = datetime.strptime(prod_start, '%Y-%m-%d %H:%M:%S')
+            end_dt = datetime.strptime(prod_end, '%Y-%m-%d %H:%M:%S')
+            adjusted_start_dt = start_dt - timedelta(hours=UTC_OFFSET_HOURS)
+            adjusted_end_dt = end_dt - timedelta(hours=UTC_OFFSET_HOURS)
+            
+            placeholders = ','.join(['%s'] * len(operator_list))
+            batch_break_logs_query = f"""
+                SELECT operator_en, timestamp, action_type
+                FROM projectsdb.break_logs
+                WHERE operator_en IN ({placeholders})
+                AND timestamp BETWEEN %s AND %s
+                ORDER BY operator_en, timestamp ASC
+            """
+            cursor.execute(batch_break_logs_query, tuple(operator_list) + (adjusted_start_dt, adjusted_end_dt))
+            all_logs = cursor.fetchall()
+            
+            # Group logs by operator
+            logs_by_operator = {}
+            for operator_en, timestamp, action_type in all_logs:
+                if operator_en not in logs_by_operator:
+                    logs_by_operator[operator_en] = []
+                logs_by_operator[operator_en].append((timestamp, action_type))
+
         for row in rows:
             operator_en, output, start_time, end_time, duration_hours = row
 
-            #--------------------- fetch timestamps for utilization stats (keeping for potential future use)--------------------------
-            cursor.execute(f"""
-                SELECT `{date_column}`
-                FROM `{db}`.`{table}`
-                WHERE `{date_column}` BETWEEN %s AND %s
-                AND operator_en = %s
-                AND `status` = 1
-                ORDER BY `{date_column}`
-            """, (prod_start, prod_end, operator_en))
-            timestamps = [r[0] for r in cursor.fetchall()]
+            # Get break logs for this operator
+            logs = logs_by_operator.get(operator_en, [])
 
-            durations = calculate_durations(timestamps)
-            avg_3_shortest = average_of_shortest(durations, n=3)
-            mode_value = mode_duration(durations)
+            # --- Calculate cycle time using break_logs (matching activity monitoring logic) ---
+            try:
+                if not logs:
+                    # NO BREAK LOGS - Use production timestamps as fallback
+                    logger.debug(f"No break_logs for {operator_en} at {model}_{station} - using production data fallback")
+                    
+                    # Calculate duration from production records
+                    if start_time and end_time:
+                        total_duration = (end_time - start_time).total_seconds()
+                        
+                        # Simple cycle time: total time / output
+                        if output > 0 and total_duration > 0:
+                            cycle_time = round(total_duration / output, 2)
+                        else:
+                            cycle_time = 0
+                    else:
+                        cycle_time = 0
+                        total_duration = 0
+                    
+                else:
+                    # HAS BREAK LOGS - Use break_logs for accurate timing
+                    # Filter break_logs to only those within the station's production timeframe
+                    station_start_buffer = start_time - timedelta(minutes=30)
+                    station_end_buffer = end_time + timedelta(minutes=30)
+                    
+                    # Convert to UTC time for comparison with break_logs
+                    station_start_utc = station_start_buffer - timedelta(hours=UTC_OFFSET_HOURS)
+                    station_end_utc = station_end_buffer - timedelta(hours=UTC_OFFSET_HOURS)
+                    
+                    # Filter logs to this station's timeframe
+                    relevant_logs = [
+                        (ts, action) for ts, action in logs 
+                        if station_start_utc <= ts <= station_end_utc
+                    ]
+                    
+                    if not relevant_logs:
+                        # Break logs exist but none in this station's timeframe
+                        logger.debug(f"No relevant break_logs for {operator_en} at {model}_{station}")
+                        if start_time and end_time:
+                            total_duration = (end_time - start_time).total_seconds()
+                            cycle_time = round(total_duration / output, 2) if output > 0 and total_duration > 0 else 0
+                        else:
+                            cycle_time = 0
+                            total_duration = 0
+                    else:
+                        # Process break logs to calculate actual working time
+                        total_active_seconds = 0
+                        start_time_log = None
+                        work_sessions = []
+                        
+                        for ts, action in relevant_logs:
+                            # Apply UTC offset to convert timestamps to local time
+                            local_ts = ts + timedelta(hours=UTC_OFFSET_HOURS)
+                            
+                            if action.lower() in ["start", "play", "resume"]:
+                                start_time_log = local_ts
+                            elif action.lower() in ["stop", "pause", "break_start"] and start_time_log:
+                                session_duration = (local_ts - start_time_log).total_seconds()
+                                if session_duration > 0:
+                                    total_active_seconds += session_duration
+                                    work_sessions.append({
+                                        'start': start_time_log,
+                                        'stop': local_ts,
+                                        'duration': session_duration
+                                    })
+                                start_time_log = None
 
-            #--------------------- split model and station--------------------------
-            if "_" in table:
-                model, station = table.split("_", 1)
-            else:
-                model, station = table, ""
+                        # Handle case where operator started but hasn't stopped yet
+                        if start_time_log:
+                            current_stop = end_time
+                            session_duration = (current_stop - start_time_log).total_seconds()
+                            if session_duration > 0:
+                                total_active_seconds += session_duration
+                                work_sessions.append({
+                                    'start': start_time_log,
+                                    'stop': current_stop,
+                                    'duration': session_duration
+                                })
 
-            #--------------------- utilization % (old formula)--------------------------
+                        # Compute cycle time from active working time
+                        if output > 0 and total_active_seconds > 0:
+                            cycle_time = round(total_active_seconds / output, 2)
+                            logger.debug(f"Operator {operator_en} at {model}_{station}: {len(work_sessions)} sessions, "
+                                      f"{total_active_seconds:.0f}s active, {output} output, "
+                                      f"cycle time: {cycle_time:.2f}s")
+                        else:
+                            cycle_time = 0
+                        
+                        total_duration = total_active_seconds
+
+            except Exception as err:
+                logger.error(f"Could not compute cycle time for {operator_en} at {model}_{station}: {err}")
+                # Fallback to simple calculation
+                if start_time and end_time:
+                    total_duration = (end_time - start_time).total_seconds()
+                    cycle_time = round(total_duration / output, 2) if output > 0 else 0
+                else:
+                    cycle_time = 0
+                    total_duration = 0
+
+            # --- Utilization calculation (unchanged) ---
             if filter_type == "day":
                 if start_time and end_time:
-                    diff_minutes = (end_time - start_time).total_seconds() / 3600.0
-                    util_percent = round((diff_minutes / 12.0) * 100, 2) 
+                    diff_hours = (end_time - start_time).total_seconds() / 3600.0
+                    util_percent = round((diff_hours / 12.0) * 100, 2) 
                 else:
                     util_percent = 0
             elif filter_type == "week":
                 if start_time and end_time:
-                    diff_minutes = (end_time - start_time).total_seconds() / 3600.0
-                    total_work_hours = 12.0 * 7.0 #12 hours per day * 7 days
-                    util_percent = round(((diff_minutes / total_work_hours) * 100), 2)
+                    diff_hours = (end_time - start_time).total_seconds() / 3600.0
+                    total_work_hours = 12.0 * 7.0
+                    util_percent = round((diff_hours / total_work_hours) * 100, 2)
                 else:
                     util_percent = 0
             elif filter_type == "month":
                 if start_time and end_time:
-                    diff_minutes = (end_time - start_time).total_seconds() / 3600.0
+                    diff_hours = (end_time - start_time).total_seconds() / 3600.0
                     days_in_period = (end_time.date() - start_time.date()).days + 1  
                     total_work_hours = 12.0 * days_in_period  
-                    util_percent = round((diff_minutes / total_work_hours) * 100, 2)
+                    util_percent = round((diff_hours / total_work_hours) * 100, 2)
                 else:
                     util_percent = 0
             else:  # range
@@ -114,26 +238,10 @@ def process_table(db, table, prod_start, prod_end, filter_type):
                 else:
                     util_percent = 0
 
-            #--------------------- fetch target time--------------------------
+            # Fetch target time
             target_time = fetch_target_time(cursor, model, station)
 
-            #--------------------- calculate cycle time--------------------------
-            if filter_type == "day":
-                # For single day: use actual working time / output
-                if start_time and end_time:
-                    time_diff_seconds = (end_time - start_time).total_seconds()
-                    cycle_time = round(time_diff_seconds / output, 2) if output > 0 else 0
-                else:
-                    cycle_time = 0
-            else:
-                # For week/month/range: use total durations / output
-                actual_working_seconds = sum(durations) if durations else 0
-                if actual_working_seconds > 0 and output > 0:
-                    cycle_time = round(actual_working_seconds / output, 2)
-                else:
-                    cycle_time = 0
-
-            #--------------------- hide SMT stations--------------------------
+            # Hide SMT stations
             if "smt" in station.upper():
                 station = "HIDDEN"
 
@@ -152,7 +260,7 @@ def process_table(db, table, prod_start, prod_end, filter_type):
             })
 
     except Exception as e:
-        print(f"Error processing table {table} in {db}: {e}")
+        logger.error(f"Error processing table {table} in {db}: {e}")
     finally:
         cursor.close()
         conn.close()
@@ -212,7 +320,7 @@ def fetch_operator_data(prod_start: str, prod_end: str, db_name: str = None, fil
                 all_data.extend(results)
             except Exception as e:
                 db, table = future_to_task[future]
-                print(f"Error processing table {table} in {db}: {e}")
+                logger.error(f"Error processing table {table} in {db}: {e}")
     
     # Return raw data without rowspan calculations
     # Rowspan will be calculated after grouping in the route handler
