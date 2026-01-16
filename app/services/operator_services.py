@@ -211,14 +211,16 @@ def process_table(db, table, prod_start, prod_end, filter_type):
             if filter_type == "day":
                 if start_time and end_time:
                     diff_hours = (end_time - start_time).total_seconds() / 3600.0
-                    util_percent = round((diff_hours / 12.0) * 100, 2) 
+                    util_percent = round((diff_hours / 12.0) * 100, 2)
+                    util_percent = min(util_percent, 100.0)  # Cap at 100%
                 else:
                     util_percent = 0
             elif filter_type == "week":
                 if start_time and end_time:
                     diff_hours = (end_time - start_time).total_seconds() / 3600.0
                     total_work_hours = 12.0 * 7.0
-                    util_percent = round((diff_hours / total_work_hours) * 100, 2)
+                    util_percent = round((diff_hours / total_work_hours) * 100 / 7.0, 2)
+                    util_percent = min(util_percent, 100.0)  # Cap at 100%
                 else:
                     util_percent = 0
             elif filter_type == "month":
@@ -226,7 +228,8 @@ def process_table(db, table, prod_start, prod_end, filter_type):
                     diff_hours = (end_time - start_time).total_seconds() / 3600.0
                     days_in_period = (end_time.date() - start_time.date()).days + 1  
                     total_work_hours = 12.0 * days_in_period  
-                    util_percent = round((diff_hours / total_work_hours) * 100, 2)
+                    util_percent = round((diff_hours / total_work_hours) * 100 / days_in_period, 2)
+                    util_percent = min(util_percent, 100.0)  # Cap at 100%
                 else:
                     util_percent = 0
             else:  # range
@@ -234,7 +237,8 @@ def process_table(db, table, prod_start, prod_end, filter_type):
                     diff_hours = (end_time - start_time).total_seconds() / 3600.0  
                     total_days = (end_time.date() - start_time.date()).days + 1  
                     total_work_hours = 12.0 * total_days  
-                    util_percent = round((diff_hours / total_work_hours) * 100, 2)
+                    util_percent = round((diff_hours / total_work_hours) * 100 / total_days, 2)
+                    util_percent = min(util_percent, 100.0)  # Cap at 100%
                 else:
                     util_percent = 0
 
@@ -266,7 +270,6 @@ def process_table(db, table, prod_start, prod_end, filter_type):
         conn.close()
     
     return results
-
 
 def fetch_operator_data(prod_start: str, prod_end: str, db_name: str = None, filter_type: str = "day", max_workers: int = 10):
     """
