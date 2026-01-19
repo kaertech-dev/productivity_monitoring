@@ -1,58 +1,239 @@
 <!--APP/app/templates/partials/operator_table.html-->
-<div class="table-responsive">
-    <table class="table table-striped table-bordered">
-        <thead class="bg-success text-white">
-            <tr>
-                {% for col in columns %}
-                    <th>{{ col }}</th>
-                {% endfor %}
-            </tr>
-        </thead>
-        <tbody>
-            {% for operator, records in groups.items() %}
-            {% for record in records %}
-                {% set is_last_in_group = loop.last %}
-                {% set row_index = loop.index %}
-                <tr>
-                    {% if loop.first %}
-                        <td rowspan="{{ records|length }}">{{ record.operator_en }}</td>
-                    {% endif %}
-                    
-                    <!-- Customer column with rowspan -->
-                    {% if record.Customer_rowspan > 0 %}
-                        <td rowspan="{{ record.Customer_rowspan }}">
-                            {{ record.Customer }}
-                        </td>
-                    {% endif %}
+<style>
+    .table-wrapper {
+        position: relative;
+        margin: 30px auto;
+        padding: 3px;
+        border-radius: 12px;
+        background: #fff;
+        max-width: 100%;
+        overflow: hidden;
+    }
+    
+    .table-wrapper::before,
+    .table-wrapper::after {
+        content: '';
+        position: absolute;
+        left: -3px;
+        top: -3px;
+        background: linear-gradient(
+            45deg,
+            #fb0094, #0000ff, #00ff00, #ffff00, #ff0000,
+            #fb0094, #0000ff, #00ff00, #ffff00, #ff0000
+        );
+        background-size: 400%;
+        width: calc(100% + 6px);
+        height: calc(100% + 6px);
+        z-index: -1;
+        animation: steam 20s linear infinite;
+        border-radius: 12px;
+    }
+    
+    @keyframes steam {
+        0% {
+            background-position: 0 0;
+        }
+        50% {
+            background-position: 400% 0;
+        }
+        100% {
+            background-position: 0 0;
+        }
+    }
+    
+    .table-wrapper::after {
+        filter: blur(20px);
+        opacity: 0.8;
+    }
+    
+    .table-wrapper:hover::before,
+    .table-wrapper:hover::after {
+        animation-play-state: paused;
+    }
+    
+    .table-responsive {
+        position: relative;
+        z-index: 1;
+        background: white;
+        border-radius: 10px;
+        overflow: auto;
+        max-height: 80vh;
+    }
+    
+    .operator-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin: 0;
+    }
+    
+    .operator-table thead {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .operator-table th {
+        background-color: #27c033 !important;
+        color: white !important;
+        font-weight: 700;
+        padding: 14px 12px;
+        text-align: center;
+        font-size: clamp(14px, 1.5vw, 16px);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border-bottom: 3px solid #1ea028;
+        white-space: nowrap;
+    }
+    
+    .operator-table td {
+        padding: 12px;
+        text-align: center;
+        border-bottom: 1px solid #e9ecef;
+        font-size: clamp(13px, 1.4vw, 15px);
+        font-weight: 600;
+        color: #333;
+        transition: all 0.3s ease;
+    }
+    
+    .operator-table tbody tr {
+        background-color: #ffffff;
+        transition: all 0.3s ease;
+    }
+    
+    .operator-table tbody tr:nth-child(even) {
+        background-color: rgba(39, 192, 51, 0.05);
+    }
+    
+    .operator-table tbody tr:hover {
+        background-color: rgba(39, 192, 51, 0.15) !important;
+        transform: scale(1.01);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .operator-table tbody tr:hover td {
+        color: #1ea028;
+    }
+    
+    /* Operator name column - merged cells */
+    .operator-table td[rowspan] {
+        background-color: rgba(39, 192, 51, 0.1) !important;
+        font-weight: 700;
+        color: #1ea028;
+        border-right: 2px solid #27c033;
+        vertical-align: middle;
+    }
+    
+    /* Summary row styling */
+    .operator-table .table-secondary {
+        background-color: #e9ecef !important;
+        font-weight: 700;
+        color: #2c3e50;
+    }
+    
+    .operator-table .table-secondary td {
+        padding: 16px 12px;
+        font-size: clamp(14px, 1.5vw, 16px);
+        border-top: 3px solid #27c033;
+        border-bottom: 3px solid #27c033;
+    }
+    
+    /* Productivity percentage highlighting */
+    .operator-table td:last-child {
+        font-weight: 700;
+        font-size: clamp(14px, 1.5vw, 16px);
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .table-wrapper {
+            margin: 20px 10px;
+        }
+        
+        .operator-table th,
+        .operator-table td {
+            padding: 10px 8px;
+            font-size: 12px;
+        }
+    }
+    
+    /* Scrollbar styling for table */
+    .table-responsive::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    
+    .table-responsive::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 5px;
+    }
+    
+    .table-responsive::-webkit-scrollbar-thumb {
+        background: #27c033;
+        border-radius: 5px;
+    }
+    
+    .table-responsive::-webkit-scrollbar-thumb:hover {
+        background: #1ea028;
+    }
+</style>
 
-                    <!-- Model column with rowspan -->
-                    {% if record.Model_rowspan > 0 %}
-                        <td rowspan="{{ record.Model_rowspan }}">
-                            {{ record.Model }}
-                        </td>
-                    {% endif %}
-                    
-                    <td>{{ record.Station }}</td>
-                    <td>{{ record.Output }}</td>
-                    <td>{{ record.Target_Time }}</td>
-                    <td>{{ record.Cycle_Time }}</td>
-                    <td>{{ record.Start_Time }}</td>
-                    <td>{{ record.End_time }}</td>
-                    <td>{{ record['%UTIL'] }}</td>
-                    
-                    {% if loop.first %}
-                        <td rowspan="{{ records|length }}">{{ summaries.get(operator, {}).get("%UTIL", 0) }}</td>
-                    {% endif %}
+<div class="table-wrapper">
+    <div class="table-responsive">
+        <table class="operator-table table table-striped table-bordered">
+            <thead class="bg-success text-white">
+                <tr>
+                    {% for col in columns %}
+                        <th>{{ col }}</th>
+                    {% endfor %}
                 </tr>
-            {% endfor %}
-            {% endfor %}
-            
-            {% if summaries.get("__AVERAGE__") %}
-            <tr class="table-secondary fw-bold">
-                <td colspan="10" style="text-align:right;">Average Productivity for ({{ current_date }})</td>
-                <td>{{ summaries["__AVERAGE__"]["%UTIL"] }}</td>
-            </tr>
-            {% endif %}
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                {% for operator, records in groups.items() %}
+                {% for record in records %}
+                    {% set is_last_in_group = loop.last %}
+                    {% set row_index = loop.index %}
+                    <tr>
+                        {% if loop.first %}
+                            <td rowspan="{{ records|length }}">{{ record.operator_en }}</td>
+                        {% endif %}
+                        
+                        <!-- Customer column with rowspan -->
+                        {% if record.Customer_rowspan > 0 %}
+                            <td rowspan="{{ record.Customer_rowspan }}">
+                                {{ record.Customer }}
+                            </td>
+                        {% endif %}
+
+                        <!-- Model column with rowspan -->
+                        {% if record.Model_rowspan > 0 %}
+                            <td rowspan="{{ record.Model_rowspan }}">
+                                {{ record.Model }}
+                            </td>
+                        {% endif %}
+                        
+                        <td>{{ record.Station }}</td>
+                        <td>{{ record.Output }}</td>
+                        <td>{{ record.Target_Time }}</td>
+                        <td>{{ record.Cycle_Time }}</td>
+                        <td>{{ record.Start_Time }}</td>
+                        <td>{{ record.End_time }}</td>
+                        <td>{{ record['%UTIL'] }}</td>
+                        
+                        {% if loop.first %}
+                            <td rowspan="{{ records|length }}">{{ summaries.get(operator, {}).get("%UTIL", 0) }}</td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+                {% endfor %}
+                
+                {% if summaries.get("__AVERAGE__") %}
+                <tr class="table-secondary fw-bold">
+                    <td colspan="10" style="text-align:right;">Average Productivity for ({{ current_date }})</td>
+                    <td>{{ summaries["__AVERAGE__"]["%UTIL"] }}</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
 </div>
