@@ -59,115 +59,115 @@
 </div>
 
 <script>
-const filterControlsWrapper = document.getElementById('filter-controls-wrapper');
-const formContainer = document.getElementById("form-container");
-const dropdownToggle = document.getElementById("arrowDropdown");
-const loadingOverlay = document.getElementById("loading-overlay");
-const today = new Date().toISOString().split('T')[0];
+    const filterControlsWrapper = document.getElementById('filter-controls-wrapper');
+    const formContainer = document.getElementById("form-container");
+    const dropdownToggle = document.getElementById("arrowDropdown");
+    const loadingOverlay = document.getElementById("loading-overlay");
+    const today = new Date().toISOString().split('T')[0];
 
-// Auto-hide filter controls after 10 seconds of inactivity
-let inactivityTimer = null;
-const INACTIVITY_DELAY = 10000; // 10 seconds
+    // Auto-hide filter controls after 10 seconds of inactivity
+    let inactivityTimer = null;
+    const INACTIVITY_DELAY = 10000; // 10 seconds
 
-function resetInactivityTimer() {
-    // Clear existing timer
-    if (inactivityTimer) {
-        clearTimeout(inactivityTimer);
+    function resetInactivityTimer() {
+        // Clear existing timer
+        if (inactivityTimer) {
+            clearTimeout(inactivityTimer);
+        }
+
+        // Show controls
+        filterControlsWrapper.classList.remove('hidden');
+
+        // Set new timer to hide controls
+        inactivityTimer = setTimeout(() => {
+            filterControlsWrapper.classList.add('hidden');
+        }, INACTIVITY_DELAY);
     }
 
-    // Show controls
-    filterControlsWrapper.classList.remove('hidden');
+    // Track mouse movement
+    document.addEventListener('mousemove', resetInactivityTimer);
+    document.addEventListener('mousedown', resetInactivityTimer);
+    document.addEventListener('keypress', resetInactivityTimer);
+    document.addEventListener('scroll', resetInactivityTimer);
+    document.addEventListener('touchstart', resetInactivityTimer);
 
-    // Set new timer to hide controls
-    inactivityTimer = setTimeout(() => {
-        filterControlsWrapper.classList.add('hidden');
-    }, INACTIVITY_DELAY);
-}
+    // Initialize on page load
+    resetInactivityTimer();
 
-// Track mouse movement
-document.addEventListener('mousemove', resetInactivityTimer);
-document.addEventListener('mousedown', resetInactivityTimer);
-document.addEventListener('keypress', resetInactivityTimer);
-document.addEventListener('scroll', resetInactivityTimer);
-document.addEventListener('touchstart', resetInactivityTimer);
-
-// Initialize on page load
-resetInactivityTimer();
-
-// Date form configurations
-const formConfigs = {
-    dayform: { selector: "#day_date", build: (val) => val === today ? "" : `?day=${encodeURIComponent(val)}` },
-    weekform: { selector: "#week_date", build: (val) => `?week=${encodeURIComponent(val)}` },
-    monthform: { selector: "#month_date", build: (val) => `?month=${encodeURIComponent(val)}` },
-    rangeform: { 
-        selector: [".action-start", ".action-end"], 
-        build: function(form) {
-            const start = form.querySelector(this.selector[0]).value;
-            const end = form.querySelector(this.selector[1]).value;
-            if (start > end) {
-                alert("Start date must be before end date");
-                return null;
+    // Date form configurations
+    const formConfigs = {
+        dayform: { selector: "#day_date", build: (val) => val === today ? "" : `?day=${encodeURIComponent(val)}` },
+        weekform: { selector: "#week_date", build: (val) => `?week=${encodeURIComponent(val)}` },
+        monthform: { selector: "#month_date", build: (val) => `?month=${encodeURIComponent(val)}` },
+        rangeform: { 
+            selector: [".action-start", ".action-end"], 
+            build: function(form) {
+                const start = form.querySelector(this.selector[0]).value;
+                const end = form.querySelector(this.selector[1]).value;
+                if (start > end) {
+                    alert("Start date must be before end date");
+                    return null;
+                }
+                return start === today && end === today ? "" : `?start_date=${encodeURIComponent(start)}&end_date=${encodeURIComponent(end)}`;
             }
-            return start === today && end === today ? "" : `?start_date=${encodeURIComponent(start)}&end_date=${encodeURIComponent(end)}`;
         }
-    }
-};
+    };
 
-// Show selected form
-document.querySelectorAll(".dropdown-item[data-target]").forEach(item => {
-    item.addEventListener("click", function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        
-        formContainer.querySelectorAll("form").forEach(f => f.style.display = "none");
-        const targetForm = document.querySelector(this.getAttribute("data-target"));
-        if (targetForm) {
-            targetForm.style.display = "block";
-            formContainer.style.display = "block";
-        }
-        
-        bootstrap.Dropdown.getInstance(dropdownToggle)?.hide();
-    });
-});
-
-// Close form container when clicking outside
-document.addEventListener("click", (e) => {
-    if (!formContainer.contains(e.target) && !dropdownToggle.contains(e.target) && !e.target.closest('.dropdown-menu')) {
-        formContainer.style.display = "none";
-    }
-});
-
-formContainer.addEventListener("click", (e) => e.stopPropagation());
-
-// Handle form submissions
-formContainer.querySelectorAll("form").forEach(form => {
-    form.addEventListener("submit", function (e) {
-        e.preventDefault();
-        const config = formConfigs[form.id];
-        
-        let query;
-        if (form.id === "rangeform") {
-            query = config.build.call(config, form);
-        } else {
-            const value = form.querySelector(config.selector).value;
-            if (!value) {
-                alert(`Please select a ${form.id.replace('form', '')}`);
-                return;
+    // Show selected form
+    document.querySelectorAll(".dropdown-item[data-target]").forEach(item => {
+        item.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            formContainer.querySelectorAll("form").forEach(f => f.style.display = "none");
+            const targetForm = document.querySelector(this.getAttribute("data-target"));
+            if (targetForm) {
+                targetForm.style.display = "block";
+                formContainer.style.display = "block";
             }
-            query = config.build(value);
-        }
-
-        if (query === null) return;
-        
-        loadingOverlay.classList.add('active');
-        window.location.href = window.location.pathname + query;
+            
+            bootstrap.Dropdown.getInstance(dropdownToggle)?.hide();
+        });
     });
-});
 
-// Download CSV function
-function downloadCSV() {
-    const params = new URLSearchParams(window.location.search);
-    let url = '/download-csv?' + params.toString();
-    window.location.href = url;
-}
+    // Close form container when clicking outside
+    document.addEventListener("click", (e) => {
+        if (!formContainer.contains(e.target) && !dropdownToggle.contains(e.target) && !e.target.closest('.dropdown-menu')) {
+            formContainer.style.display = "none";
+        }
+    });
+
+    formContainer.addEventListener("click", (e) => e.stopPropagation());
+
+    // Handle form submissions
+    formContainer.querySelectorAll("form").forEach(form => {
+        form.addEventListener("submit", function (e) {
+            e.preventDefault();
+            const config = formConfigs[form.id];
+            
+            let query;
+            if (form.id === "rangeform") {
+                query = config.build.call(config, form);
+            } else {
+                const value = form.querySelector(config.selector).value;
+                if (!value) {
+                    alert(`Please select a ${form.id.replace('form', '')}`);
+                    return;
+                }
+                query = config.build(value);
+            }
+
+            if (query === null) return;
+            
+            loadingOverlay.classList.add('active');
+            window.location.href = window.location.pathname + query;
+        });
+    });
+
+    // Download CSV function
+    function downloadCSV() {
+        const params = new URLSearchParams(window.location.search);
+        let url = '/download-csv?' + params.toString();
+        window.location.href = url;
+    }
 </script>
