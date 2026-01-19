@@ -1,4 +1,3 @@
-# APP/app/services/operator_services.py
 from ..database import get_connection
 from .db_utils import get_databases, get_tables, get_columns, find_date_column
 from .target_time_service import fetch_target_time
@@ -20,6 +19,30 @@ def escape_identifier(identifier):
         raise ValueError(f"Invalid identifier: {identifier}")
     
     return f"`{cleaned}`"
+
+def get_employee_name(cursor, operator_id):
+    """
+    Fetch employee name from attendance.list table based on operator_id (employee_num).
+    Returns employee_name or the original operator_id if not found.
+    """
+    try:
+        query = """
+            SELECT employee_name
+            FROM `attendance`.`list`
+            WHERE employee_num = %s
+            LIMIT 1
+        """
+        cursor.execute(query, (operator_id,))
+        result = cursor.fetchone()
+        
+        if result and result[0]:
+            return result[0]
+        else:
+            logger.debug(f"No employee name found for operator_id: {operator_id}")
+            return operator_id  # Return original ID if name not found
+    except Exception as e:
+        logger.error(f"Error fetching employee name for {operator_id}: {str(e)}", exc_info=True)
+        return operator_id  # Return original ID on error
 
 def fetch_attendance_data(cursor, operator_id, prod_date):
     """
@@ -127,6 +150,9 @@ def process_table(db, table, prod_start, prod_end, filter_type):
         for row in rows:
             operator_en, output, start_time, end_time = row
             
+            # Get employee name from attendance.list and use it as the operator identifier
+            employee_name = get_employee_name(cursor, operator_en)
+            
             # Since attendance system only records clock-ins (no clock-outs),
             # we must use production timestamps for accurate working hours
             # Calculate working hours from production data
@@ -160,7 +186,7 @@ def process_table(db, table, prod_start, prod_end, filter_type):
                 cycle_time = 0
 
             data_dict = {
-                "operator_en": operator_en,
+                "operator_en": employee_name,  # Now shows employee name instead of ID
                 "Customer": db,
                 "Model": model,
                 "Station": station,
