@@ -39,6 +39,11 @@
             width: 150px;
             height: 150px;
             animation: bounce 1s infinite;
+            border: none;
+        }
+        
+        img {
+            border: none;
         }
         
         @keyframes bounce {
@@ -164,7 +169,7 @@
 </head>
 <body class="p-2">
     <div id="loading-overlay">
-        <img src="/static/kaertech_logo192.png" alt="Loading..." class="bouncing-logo">
+        <img src="/static/kaertech_logo512.png" alt="Loading..." class="bouncing-logo">
     </div>
     <div class="logo-wrapper"></div>
     {% block content %}{% endblock %}
