@@ -1,18 +1,90 @@
-<!--APP/app/templates/testing.html-->
 {% extends "layouts/base.html" %}
 
 {% block title %}Productivity Monitoring{% endblock %}
 
 {% block content %}
 <link rel="stylesheet" href="/static/css/productivity.css">
-<div class="animated-border-container">
-    <h1>Productivity Monitoring ({{ current_date }})</h1>
+<div style="position: relative;">
+    <div class="animated-border-container">
+        <h1>
+            <a href="https://erp.kaertech.info/fil/" style="text-decoration: none; color: inherit;">
+                <img src="/static/kaertech_logo512.png" alt="Logo" 
+                    style="vertical-align: middle; margin-right: 5px; width:80px; height:80px; border: none;">
+                Productivity Monitoring ({{ current_date }})
+            </a>
+        </h1>
+        <!--<h1>Productivity Monitoring ({{ current_date }})</h1>-->
+    </div>
+
+    <a href="http://192.168.1.53:8080/" target="_blank"
+        class="status-indicator-container" 
+        style="position: absolute; top: -70px; right: -40px; text-align: center; display: flex; flex-direction: column; align-items: center; text-decoration: none; color: inherit;">
+            <img id="status-image" src="/static/happy_abegail.png" alt="Status Indicator" 
+                style="width: 200px; height: 240px; transition: all 0.5s ease; border: none;">
+            <p id="status-text" style="font-weight: bold; font-size: 14px; color: #27c033; margin-top: -90px; margin-left: -20px; white-space: nowrap;">
+            All On Target!
+            </p>
+    </a>
 </div>
 
 {% if groups %}
     {% include "partials/filter_download_form.html" %}
     {% include "partials/operator_table.html" %}
     <script src="/static/js/filter_download_form.js"></script>
+    <script>
+        // Update status image based on utilization
+        function updateStatusImage() {
+            const statusImageEl = document.getElementById('status-image');
+            const statusTextEl = document.getElementById('status-text');
+            const tableRows = document.querySelectorAll('table tbody tr:not(.table-secondary)');
+            
+            if (tableRows.length === 0) return;
+
+            let onTargetCount = 0;
+            let belowTargetCount = 0;
+
+            tableRows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length > 0) {
+                    // Get the %UTIL column (second to last cell before average)
+                    const lastDataCell = cells[cells.length - 2];
+                    
+                    if (lastDataCell) {
+                        const utilText = lastDataCell.textContent.trim();
+                        const utilValue = parseFloat(utilText);
+                        
+                        if (!isNaN(utilValue)) {
+                            if (utilValue >= 80) {
+                                onTargetCount++;
+                            } else if (utilValue < 80) {
+                                belowTargetCount++;
+                            }
+                        }
+                    }
+                }
+            });
+            
+            if (onTargetCount > belowTargetCount) {
+                statusImageEl.src = '/static/happy_abegail.png';
+                statusTextEl.textContent = `✓ All On Target!`;
+                statusTextEl.style.color = '#27c033';
+            } else if (belowTargetCount > onTargetCount) {
+                statusImageEl.src = '/static/sad_abegail.png';
+                statusTextEl.textContent = `⚠ Below Target Alert!`;
+                statusTextEl.style.color = '#dc3545';
+            } else {
+                statusImageEl.src = '/static/happy_abegail.png';
+                statusTextEl.textContent = `✓ All On Target!`;
+                statusTextEl.style.color = '#27c033';
+            }
+        }
+
+        // Update status image on page load
+        window.addEventListener('DOMContentLoaded', updateStatusImage);
+        
+        // Check periodically for updates
+        setInterval(updateStatusImage, 5000);
+    </script>
 {% else %}
     <p><strong>No records found for ({{ current_date }}).</strong></p>
     <button onclick="history.back()">Go back</button>
