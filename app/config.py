@@ -1,10 +1,11 @@
 # app/app/config.py
+import os
 from fastapi.templating import Jinja2Templates
 
 DB_CONFIG = {
-    'host': '192.168.1.38',
-    'user': 'readonly_user',
-    'password': 'kts@tsd2025'
+    'host': os.environ['DB_HOST'],
+    'user': os.environ['DB_USER'],
+    'password': os.environ['DB_PASSWORD'],
 }
 
 templates = Jinja2Templates(directory="templates")
