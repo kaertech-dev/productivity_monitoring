@@ -64,8 +64,7 @@ async def show_operator_en_today(
     formatted_end = format_date_with_month_name(end)
     current_date_display = f"{formatted_start} → {formatted_end}" if start != end else formatted_start
 
-    return templates.TemplateResponse("testing.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "testing.html", {
         "groups": grouped,
         "columns": columns,
         "summaries": summaries,
