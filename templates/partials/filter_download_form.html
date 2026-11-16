@@ -108,7 +108,9 @@
 
     // Download exactly the period being displayed (day/week/month/year/range)
     document.getElementById('downloadBtn').addEventListener('click', function () {
-        window.location.href = '/download-csv?' + new URLSearchParams(window.location.search).toString();
+        // Relative to current path so it also works behind the dashboard's /productivity proxy
+        const base = window.location.pathname.replace(/\/+$/, '');
+        window.location.href = base + '/download-csv?' + new URLSearchParams(window.location.search).toString();
     });
 })();
 </script>
