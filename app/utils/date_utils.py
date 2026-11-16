@@ -6,6 +6,7 @@ def get_prod_range(
     day: Optional[str] = None,
     week: Optional[str] = None,
     month: Optional[str] = None,
+    year: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None
 ):
@@ -35,6 +36,14 @@ def get_prod_range(
             else:
                 next_month = datetime(year, month_num + 1, 1)
             end = (next_month - timedelta(days=1)).strftime('%Y-%m-%d')
+        except Exception:
+            start = end = today
+
+    elif year:
+        try:
+            y = int(year)
+            start = datetime(y, 1, 1).strftime('%Y-%m-%d')
+            end = datetime(y, 12, 31).strftime('%Y-%m-%d')
         except Exception:
             start = end = today
 

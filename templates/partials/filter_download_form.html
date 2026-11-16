@@ -1,173 +1,114 @@
-<!-- Filter and Download Section (Auto-hide) -->
+<!-- Filter and Download Section (no Bootstrap JS dependency) -->
+<style>
+    #filter-controls-wrapper { position: relative; z-index: 50; }
+    #filter-controls-wrapper .period-select {
+        padding: 6px 12px; border-radius: 6px; border: 1px solid #ccc;
+        font-size: 14px; background: #fff; cursor: pointer;
+    }
+    #filter-controls-wrapper .period-form {
+        display: none; align-items: center; gap: 10px; flex-wrap: wrap;
+        background: #fff; padding: 10px 14px; border-radius: 8px;
+        border: 1px solid #ddd; margin-bottom: 12px;
+    }
+    #filter-controls-wrapper .period-form.active { display: flex; }
+    #filter-controls-wrapper .period-form input[type="date"],
+    #filter-controls-wrapper .period-form input[type="week"],
+    #filter-controls-wrapper .period-form input[type="month"],
+    #filter-controls-wrapper .period-form input[type="number"] {
+        padding: 6px 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 14px;
+    }
+    #filter-controls-wrapper .period-form button {
+        padding: 6px 16px; font-weight: 600; color: #fff; background: #28a745;
+        border: none; border-radius: 6px; cursor: pointer;
+    }
+</style>
+
 <div id="filter-controls-wrapper">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <!-- Filter on left -->
         <div class="d-flex align-items-center gap-2">
-            <label for="arrowDropdown" class="fw-bold">Choose Filter:</label>
-            <div class="dropdown">
-                <button class="btn btn-secondary dropdown-toggle" type="button" id="arrowDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="arrowDropdown">
-                    <li><a class="dropdown-item" href="#" data-target="#dayform">Day</a></li>
-                    <li><a class="dropdown-item" href="#" data-target="#weekform">Week</a></li>
-                    <li><a class="dropdown-item" href="#" data-target="#monthform">Month</a></li>
-                    <li><a class="dropdown-item" href="#" data-target="#rangeform">Range</a></li>
-                </ul>
-            </div>
+            <label for="periodSelect" class="fw-bold">Choose Filter:</label>
+            <select id="periodSelect" class="period-select">
+                <option value="">Today (default)</option>
+                <option value="day">Day</option>
+                <option value="week">Week</option>
+                <option value="month">Month</option>
+                <option value="year">Year</option>
+                <option value="range">Custom range</option>
+            </select>
         </div>
-        
-        <!-- Download Button on right -->
         <div>
-            <button onclick="downloadCSV()" class="btn btn-success">⬇️ Download CSV</button>
+            <button type="button" id="downloadBtn" class="btn btn-success">⬇️ Download CSV</button>
         </div>
     </div>
-    
-    <!-- Form container that pushes content down -->
-    <div id="form-container" style="display: none; margin-top: 1rem;">
-        <!--day form-->
-        <form id="dayform" style="display: none;">
-            <label for="day_date" style="font-weight: bold;">Select day:</label>
-            <input type="date" id="day_date" name="day" required>
-            <button type="submit" style="border-style: solid; border-width: 1px; border-color: #ccc;">Submit</button>
-        </form>
 
-        <!--week form-->
-        <form id="weekform" style="display: none;">
-            <label for="week_date">Select week:</label>
-            <input type="week" id="week_date" name="week" required>
-            <button type="submit" style="border-style: solid; border-width: 1px; border-color: #ccc;">Submit</button>
-        </form>
-
-        <!--month form-->
-        <form id="monthform" style="display: none;">
-            <label for="month_date">Select month:</label>
-            <input type="month" id="month_date" name="month" required>
-            <button type="submit" style="border-style: solid; border-width: 1px; border-color: #ccc;">Submit</button>
-        </form>
-
-        <!--range date-->
-        <form id="rangeform" style="display: none;">
-            <label>Start Date: 
-                <input type="date" class="action-start" name="start_date" required>
-            </label>
-            <label>End Date: 
-                <input type="date" class="action-end" name="end_date" required>
-            </label>
-            <button type="submit" style="border-style: solid; border-width: 1px; border-color: #ccc;">Filter</button>
-        </form>
-    </div>
+    <form id="dayform" class="period-form" data-period="day">
+        <label for="day_date" class="fw-bold">Select day:</label>
+        <input type="date" id="day_date" name="day" required>
+        <button type="submit">Apply</button>
+    </form>
+    <form id="weekform" class="period-form" data-period="week">
+        <label for="week_date" class="fw-bold">Select week:</label>
+        <input type="week" id="week_date" name="week" required>
+        <button type="submit">Apply</button>
+    </form>
+    <form id="monthform" class="period-form" data-period="month">
+        <label for="month_date" class="fw-bold">Select month:</label>
+        <input type="month" id="month_date" name="month" required>
+        <button type="submit">Apply</button>
+    </form>
+    <form id="yearform" class="period-form" data-period="year">
+        <label for="year_date" class="fw-bold">Select year:</label>
+        <input type="number" id="year_date" name="year" min="2020" max="2100" step="1" required>
+        <button type="submit">Apply</button>
+    </form>
+    <form id="rangeform" class="period-form" data-period="range">
+        <label>Start Date: <input type="date" id="range_start" name="start_date" required></label>
+        <label>End Date: <input type="date" id="range_end" name="end_date" required></label>
+        <button type="submit">Apply</button>
+    </form>
 </div>
 
 <script>
-    const filterControlsWrapper = document.getElementById('filter-controls-wrapper');
-    const formContainer = document.getElementById("form-container");
-    const dropdownToggle = document.getElementById("arrowDropdown");
-    const loadingOverlay = document.getElementById("loading-overlay");
-    const today = new Date().toISOString().split('T')[0];
+(function () {
+    const select = document.getElementById('periodSelect');
+    const forms = document.querySelectorAll('#filter-controls-wrapper .period-form');
+    const params = new URLSearchParams(window.location.search);
 
-    // Auto-hide filter controls after 10 seconds of inactivity
-    let inactivityTimer = null;
-    const INACTIVITY_DELAY = 10000; // 10 seconds
+    // Pre-select the period currently being displayed and fill its inputs
+    const current = params.has('day') ? 'day' : params.has('week') ? 'week' :
+                    params.has('month') ? 'month' : params.has('year') ? 'year' :
+                    (params.has('start_date') && params.has('end_date')) ? 'range' : '';
+    select.value = current;
+    if (params.get('day')) document.getElementById('day_date').value = params.get('day');
+    if (params.get('week')) document.getElementById('week_date').value = params.get('week');
+    if (params.get('month')) document.getElementById('month_date').value = params.get('month');
+    if (params.get('year')) document.getElementById('year_date').value = params.get('year');
+    if (params.get('start_date')) document.getElementById('range_start').value = params.get('start_date');
+    if (params.get('end_date')) document.getElementById('range_end').value = params.get('end_date');
 
-    function resetInactivityTimer() {
-        // Clear existing timer
-        if (inactivityTimer) {
-            clearTimeout(inactivityTimer);
-        }
-
-        // Show controls
-        filterControlsWrapper.classList.remove('hidden');
-
-        // Set new timer to hide controls
-        inactivityTimer = setTimeout(() => {
-            filterControlsWrapper.classList.add('hidden');
-        }, INACTIVITY_DELAY);
+    function showPeriod(value) {
+        forms.forEach(f => f.classList.toggle('active', f.dataset.period === value));
     }
+    select.addEventListener('change', function () {
+        if (!this.value) { window.location.href = window.location.pathname; return; }
+        showPeriod(this.value);
+    });
 
-    // Track mouse movement
-    document.addEventListener('mousemove', resetInactivityTimer);
-    document.addEventListener('mousedown', resetInactivityTimer);
-    document.addEventListener('keypress', resetInactivityTimer);
-    document.addEventListener('scroll', resetInactivityTimer);
-    document.addEventListener('touchstart', resetInactivityTimer);
-
-    // Initialize on page load
-    resetInactivityTimer();
-
-    // Date form configurations
-    const formConfigs = {
-        dayform: { selector: "#day_date", build: (val) => val === today ? "" : `?day=${encodeURIComponent(val)}` },
-        weekform: { selector: "#week_date", build: (val) => `?week=${encodeURIComponent(val)}` },
-        monthform: { selector: "#month_date", build: (val) => `?month=${encodeURIComponent(val)}` },
-        rangeform: { 
-            selector: [".action-start", ".action-end"], 
-            build: function(form) {
-                const start = form.querySelector(this.selector[0]).value;
-                const end = form.querySelector(this.selector[1]).value;
-                if (start > end) {
-                    alert("Start date must be before end date");
-                    return null;
-                }
-                return start === today && end === today ? "" : `?start_date=${encodeURIComponent(start)}&end_date=${encodeURIComponent(end)}`;
-            }
+    forms.forEach(form => form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const data = new FormData(form);
+        if (form.dataset.period === 'range' && data.get('start_date') > data.get('end_date')) {
+            alert('Start date must be on or before end date');
+            return;
         }
-    };
+        const overlay = document.getElementById('loading-overlay');
+        if (overlay) overlay.classList.add('active');
+        window.location.href = window.location.pathname + '?' + new URLSearchParams(data).toString();
+    }));
 
-    // Show selected form
-    document.querySelectorAll(".dropdown-item[data-target]").forEach(item => {
-        item.addEventListener("click", function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            formContainer.querySelectorAll("form").forEach(f => f.style.display = "none");
-            const targetForm = document.querySelector(this.getAttribute("data-target"));
-            if (targetForm) {
-                targetForm.style.display = "block";
-                formContainer.style.display = "block";
-            }
-            
-            bootstrap.Dropdown.getInstance(dropdownToggle)?.hide();
-        });
+    // Download exactly the period being displayed (day/week/month/year/range)
+    document.getElementById('downloadBtn').addEventListener('click', function () {
+        window.location.href = '/download-csv?' + new URLSearchParams(window.location.search).toString();
     });
-
-    // Close form container when clicking outside
-    document.addEventListener("click", (e) => {
-        if (!formContainer.contains(e.target) && !dropdownToggle.contains(e.target) && !e.target.closest('.dropdown-menu')) {
-            formContainer.style.display = "none";
-        }
-    });
-
-    formContainer.addEventListener("click", (e) => e.stopPropagation());
-
-    // Handle form submissions
-    formContainer.querySelectorAll("form").forEach(form => {
-        form.addEventListener("submit", function (e) {
-            e.preventDefault();
-            const config = formConfigs[form.id];
-            
-            let query;
-            if (form.id === "rangeform") {
-                query = config.build.call(config, form);
-            } else {
-                const value = form.querySelector(config.selector).value;
-                if (!value) {
-                    alert(`Please select a ${form.id.replace('form', '')}`);
-                    return;
-                }
-                query = config.build(value);
-            }
-
-            if (query === null) return;
-            
-            loadingOverlay.classList.add('active');
-            window.location.href = window.location.pathname + query;
-        });
-    });
-
-    // Download CSV function
-    function downloadCSV() {
-        const params = new URLSearchParams(window.location.search);
-        let url = '/download-csv?' + params.toString();
-        window.location.href = url;
-    }
+})();
 </script>
