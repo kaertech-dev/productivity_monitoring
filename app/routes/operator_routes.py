@@ -12,7 +12,7 @@ from ..utils.csv_utils import generate_csv_response
 
 router = APIRouter()
 
-def determine_filter_type(day, week, month, start_date, end_date):
+def determine_filter_type(day, week, month, start_date, end_date, year=None):
     """Determine which filter type is being used"""
     if day:
         return "day"
@@ -20,6 +20,8 @@ def determine_filter_type(day, week, month, start_date, end_date):
         return "week"
     elif month:
         return "month"
+    elif year:
+        return "year"
     elif start_date and end_date:
         return "range"
     else:
@@ -39,13 +41,14 @@ async def show_operator_en_today(
     day: Optional[str] = None,
     week: Optional[str] = None,
     month: Optional[str] = None,
+    year: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     sort_by: str = "none",
     db_name: str = None
 ):
-    start, end, prod_start, prod_end = get_prod_range(day, week, month, start_date, end_date)
-    filter_type = determine_filter_type(day, week, month, start_date, end_date)
+    start, end, prod_start, prod_end = get_prod_range(day, week, month, year, start_date, end_date)
+    filter_type = determine_filter_type(day, week, month, start_date, end_date, year)
 
     all_data, databases = fetch_operator_data(prod_start, prod_end, db_name, filter_type)
     columns = ['Operator', 'Customer', 'Model', 'Station', 'Output Qty',
@@ -81,18 +84,28 @@ def download_csv(
     day: Optional[str] = None,
     week: Optional[str] = None,
     month: Optional[str] = None,
+    year: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     db_name: Optional[str] = None
 ):
-    start, end, prod_start, prod_end = get_prod_range(day, week, month, start_date, end_date)
-    filter_type = determine_filter_type(day, week, month, start_date, end_date)
+    start, end, prod_start, prod_end = get_prod_range(day, week, month, year, start_date, end_date)
+    filter_type = determine_filter_type(day, week, month, start_date, end_date, year)
     
     all_data, _ = fetch_operator_data(prod_start, prod_end, db_name, filter_type)
-    columns = ['Operator Name', 'Customer', 'Model', 'Station', 'Output Quantity',
-               'Target Time (s)', 'Cycle Time (s)', 'Start Time', 'End Time', 'Utilization (%)']
+    # CSV header -> key in the row dicts returned by fetch_operator_data
+    csv_columns = [
+        ('Operator Name', 'operator_en'), ('Customer', 'Customer'), ('Model', 'Model'),
+        ('Station', 'Station'), ('Output Quantity', 'Output'),
+        ('Target Time (s)', 'Target_Time'), ('Cycle Time (s)', 'Cycle_Time'),
+        ('Start Time', 'Start_Time'), ('End Time', 'End_time'), ('Utilization (%)', '%UTIL'),
+    ]
+    all_data = sort_data(all_data, "az")
+    columns = [c for c, _ in csv_columns]
+    rows = [{c: row.get(k, '') for c, k in csv_columns} for row in all_data]
+    all_data = rows
 
-    filename = f"operator_data_{start}_to_{end}.csv"
+    filename = f"operator_data_{start}.csv" if start == end else f"operator_data_{start}_to_{end}.csv"
     return generate_csv_response(all_data, columns, filename)
 
 
